@@ -8,7 +8,7 @@ import os
 import random
 import matplotlib.pyplot as plt
 
-# Define the SiameseNetwork class (same as in your Colab notebook)
+# Define the SiameseNetwork class
 class SiameseNetwork(nn.Module):
     def __init__(self):
         super(SiameseNetwork, self).__init__()
@@ -49,11 +49,11 @@ class SiameseNetwork(nn.Module):
             nn.ReLU(inplace=True),
             nn.Dropout(p=0.2),
 
-            nn.Linear(160,40),
+            nn.Linear(160, 40),
             nn.ReLU(inplace=True),
             nn.Dropout(p=0.2),
 
-            nn.Linear(40,10)
+            nn.Linear(40, 10)
         )
 
     def forward_once(self, x):
@@ -71,15 +71,14 @@ class SiameseNetwork(nn.Module):
 @st.cache_resource
 def load_model(model_path):
     model = SiameseNetwork()
-    # Load state dict from the saved file
     model.load_state_dict(torch.load(model_path, map_location=torch.device('cpu')))
-    model.eval() # Set the model to evaluation mode
+    model.eval()
     return model
 
-# Load the model (assuming 'best_model.pt' is in the same directory)
+# Load the model
 model = load_model("models/best_model.pt")
 
-# Define the image transformation (same as in your Colab notebook)
+# Image transformation
 TARGET_SIZE = (270, 650)
 transform = transforms.Compose([
     transforms.Grayscale(num_output_channels=1),
@@ -88,30 +87,29 @@ transform = transforms.Compose([
     transforms.Normalize((0.5,), (0.5,))
 ])
 
-# Function to preprocess and get embedding
+# Get embedding from image
 def get_embedding(image):
-    image = transform(image).unsqueeze(0) # Add batch dimension
+    image = transform(image).unsqueeze(0)
     with torch.no_grad():
         embedding = model.forward_once(image)
     return embedding
 
-# Streamlit app interface
+# Streamlit app
 st.title("Signature Verification App")
-
 st.write("Upload two signature images to verify if they are from the same person.")
 
 uploaded_file1 = st.file_uploader("Choose the first signature image...", type=["png", "jpg", "jpeg", "tif"])
 uploaded_file2 = st.file_uploader("Choose the second signature image...", type=["png", "jpg", "jpeg", "tif"])
 
-# You can adjust this threshold based on your model's performance on validation/test data
-distance_threshold = st.slider("Select Distance Threshold for Verification", min_value=0.1, max_value=2.0, value=0.5, step=0.05)
+# Fixed threshold
+distance_threshold = 0.5
+st.write(f"Using fixed verification threshold: {distance_threshold}")
 
 if uploaded_file1 is not None and uploaded_file2 is not None:
-    image1 = Image.open(uploaded_file1).convert("L") # Convert to grayscale
-    image2 = Image.open(uploaded_file2).convert("L") # Convert to grayscale
+    image1 = Image.open(uploaded_file1).convert("L")
+    image2 = Image.open(uploaded_file2).convert("L")
 
     col1, col2 = st.columns(2)
-
     with col1:
         st.image(image1, caption="Image 1", use_column_width=True)
     with col2:
@@ -119,16 +117,13 @@ if uploaded_file1 is not None and uploaded_file2 is not None:
 
     st.subheader("Verification Result:")
 
-    # Get embeddings for both images
     embedding1 = get_embedding(image1)
     embedding2 = get_embedding(image2)
 
-    # Calculate Euclidean distance between the embeddings
     euclidean_distance = torch.pairwise_distance(embedding1, embedding2).item()
 
     st.write(f"Euclidean Distance: {euclidean_distance:.4f}")
 
-    # Compare the distance to the threshold
     if euclidean_distance <= distance_threshold:
         st.success("The signatures are likely GENUINE.")
     else:

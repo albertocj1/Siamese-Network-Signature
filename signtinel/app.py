@@ -95,7 +95,7 @@ def get_embedding(image):
     return embedding
 
 # Streamlit UI
-st.title("Signature Verification App")
+st.title("SIGNTINEL")
 st.write("Upload two signature images to verify if they are from the same person.")
 
 uploaded_file1 = st.file_uploader("Choose the first signature image...", type=["png", "jpg", "jpeg", "tif"])
